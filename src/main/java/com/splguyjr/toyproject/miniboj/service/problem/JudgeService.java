@@ -72,45 +72,61 @@ public class JudgeService {
     }
 
     private String runCode(String input) {
-        // 이중 try문, 해당 블록 내에서 예외 처리되지 않으면 상위 블록으로 전달
         try {
             System.out.println("채점 시작...");
-            Thread.sleep(1000); // 1초 대기
+            sleep(1000); // 1초 대기
 
             // java -cp 명령어를 통해 앞서 컴파일된 .class 파일 실행
-            ProcessBuilder pb = new ProcessBuilder("java", "-cp", FILE_PATH, CLASS_NAME);
-            Process process = pb.start();
+            Process process = startProcess();
 
             // 입력값 전달 및 실행 결과 읽기
-            StringBuilder output = new StringBuilder();
-            try (
-                    // 프로세스에 데이터를 전달하기 위한 출력 스트림, 프로세스의 표준 입력(stdin) 스트림으로 출력
-                    BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
-                    // 프로세스에서 출력된 데이터를 읽어오기 위한 입력 스트림, 프로세스의 표준 입력(stdout) 스트림의 내용을 읽어옴
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))
-            ) {
-                // 입력값 전달
-                System.out.println("입력값 전달 중...");
-                Thread.sleep(1000); // 1초 대기
-                writer.write(input);
-                writer.flush();
-
-                // 실행 결과 읽기
-                System.out.println("실행 결과 읽는 중...");
-                Thread.sleep(1000); // 1초 대기
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    output.append(line);
-                }
-            }
+            String output = executeTestCase(process, input);
 
             // 실행 중인 프로세스가 끝날 때까지 대기
             process.waitFor();
             System.out.println("채점 완료.");
-            Thread.sleep(1000); // 1초 대기
-            return output.toString().trim(); // 결과 반환
+            sleep(1000); // 1초 대기
+
+            return output.trim(); // 결과 반환
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException("코드 실행 중 오류 발생", e); // 실행 중 오류 처리
+        }
+    }
+
+    private Process startProcess() throws IOException {
+        ProcessBuilder pb = new ProcessBuilder("java", "-cp", FILE_PATH, CLASS_NAME);
+        return pb.start();
+    }
+
+    private String executeTestCase(Process process, String input) throws IOException {
+        StringBuilder output = new StringBuilder();
+
+        try (
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))
+        ) {
+            // 입력값 전달
+            System.out.println("입력값 전달 중...");
+            sleep(1000); // 1초 대기
+            writer.write(input);
+            writer.flush();
+
+            // 실행 결과 읽기
+            System.out.println("실행 결과 읽는 중...");
+            sleep(1000); // 1초 대기
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line);
+            }
+        }
+        return output.toString();
+    }
+
+    private void sleep(int milliseconds) {
+        try {
+            Thread.sleep(milliseconds);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
